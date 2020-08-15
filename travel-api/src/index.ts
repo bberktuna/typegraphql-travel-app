@@ -4,9 +4,9 @@ import express from "express"
 import session from "express-session"
 import connectSqlite3 from "connect-sqlite3"
 import { ApolloServer } from "apollo-server-express"
-import * as path from "path"
 import {buildSchema} from "type-graphql"
 import { PlaceResolver } from "./resolvers/PlaceResolver";
+import * as path from 'path';
 
 const SQLiteStore = connectSqlite3(session)
 
@@ -22,7 +22,7 @@ async function bootstrap(){
             name: "qid",
             secret: process.env.SESSION_SECRET || "random_secret_wqdvqw",
             resave: false,
-            saveUnitialized: false,
+            saveUninitialized: false,
             cookie: {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
@@ -40,24 +40,28 @@ createConnection({ ...dbOptions, name: "default"})
 .then(async () => {
     // 1) BUILD SERVER SCHEMA
     const schema = await buildSchema({
+        // add all typescript resolvers
+        // __dirname + '/resolvers/*.ts'
         resolvers: [PlaceResolver],
-        validate: true,
-        emitSchemaFile: path.resolve(__dirname, "schema.gql")
-    })
-    // 2) CREATE APOLLO SERVER INSTANCE
-    const apolloServer = new ApolloServer({
+        emitSchemaFile: path.resolve(__dirname, 'schema.gql')
+      });
+      
+      // Create GraphQL server
+      const apolloServer = new ApolloServer({
         schema,
-        context: ({ req, res }) => ({ req, res}),
+        context: ({ req, res }) => ({ req, res }),
         introspection: true,
+        // enable GraphQL Playground
         playground: true
-    })
-    // 3) APPLY SERVER INSTANCE AS MIDDLEWARE
-    apolloServer.applyMiddleware({ app, cors: true})
-    // 4) LISTEN TO REQUESTS ON ASSOCIATED PORT
-    const port = process.env.PORT || 4000
-    app.listen(port, () => {
-        console.log(` server started at http://localhost:${port}/graphql`)
-    })
+      });
+      
+      apolloServer.applyMiddleware({ app, cors: true });
+      
+      const port = process.env.PORT || 4000;
+      // Start the server
+      app.listen(port, () => {
+        console.log(`Server started at http://localhost:${port}/graphql`);
+      });
 })
   .catch(error => console.log(error));
 }
